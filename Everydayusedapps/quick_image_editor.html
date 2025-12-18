@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- SEO Meta Tags -->
+    <title>QuickEdit - Free Online Image Editor | Crop, Resize & Add Text</title>
+    <meta name="description" content="Free browser-based image editor. Easily crop, resize, rotate, flip, and add text to your photos instantly. No signup or server uploads required.">
+    <meta name="keywords" content="online image editor, crop image, resize photo, add text to image, rotate photo, flip image, free photo tool, browser image editor, quick photo edit, watermark creator">
+    <meta name="robots" content="index, follow">
+    <meta name="author" content="QuickEdit">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="QuickEdit - Free Online Image Editor">
+    <meta property="og:description" content="Crop, resize, rotate, flip, and add text to your photos instantly in your browser. Secure and fast.">
+    
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="QuickEdit - Professional Image Editor">
+    <meta name="twitter:description" content="Crop, resize, rotate, flip, and add text to your photos instantly in your browser.">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Cropper.js CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* Custom scrollbar for dark theme */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1f2937; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4b5563; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6b7280; 
+        }
+
+        /* Cropper Override for Dark Theme */
+        .cropper-view-box,
+        .cropper-face {
+            border-radius: 0;
+        }
+        
+        /* Dashed border for upload zone */
+        .upload-zone {
+            background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='10' ry='10' stroke='%234B5563FF' stroke-width='2' stroke-dasharray='10%2c 10' stroke-dashoffset='0' stroke-linecap='square'/%3e%3c/svg%3e");
+            transition: all 0.3s ease;
+        }
+        .upload-zone:hover {
+            background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='10' ry='10' stroke='%233B82F6FF' stroke-width='2' stroke-dasharray='10%2c 10' stroke-dashoffset='0' stroke-linecap='square'/%3e%3c/svg%3e");
+            background-color: rgba(59, 130, 246, 0.05);
+        }
+
+        /* Canvas background pattern */
+        .canvas-bg {
+            background-image: 
+                linear-gradient(45deg, #1f2937 25%, transparent 25%), 
+                linear-gradient(-45deg, #1f2937 25%, transparent 25%), 
+                linear-gradient(45deg, transparent 75%, #1f2937 75%), 
+                linear-gradient(-45deg, transparent 75%, #1f2937 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+            background-color: #111827;
+        }
+
+        /* Text Overlay Styles */
+        #textLayer {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            cursor: move;
+            z-index: 50; /* Above cropper */
+            white-space: nowrap;
+            pointer-events: auto;
+            user-select: none;
+            padding: 4px 8px;
+            border: 1px dashed rgba(255,255,255,0.5);
+            background: rgba(0,0,0,0.2);
+            font-family: sans-serif;
+            font-weight: bold;
+            display: none; /* Hidden by default */
+        }
+        #textLayer:hover {
+            border-color: #3b82f6;
+            background: rgba(0,0,0,0.4);
+        }
+        /* Hide border when not interacting if needed, but helpful for placement */
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 h-screen flex flex-col overflow-hidden font-sans">
+
+    <!-- Header -->
+    <header class="bg-gray-800 border-b border-gray-700 h-16 flex items-center justify-between px-6 shrink-0 z-20 shadow-lg">
+        <div class="flex items-center gap-3">
+            <div class="bg-blue-600 p-2 rounded-lg shadow-lg shadow-blue-500/30">
+                <i class="fas fa-crop-alt text-white"></i>
+            </div>
+            <h1 class="text-xl font-bold tracking-tight">Quick<span class="text-blue-500">Edit</span></h1>
+        </div>
+        
+        <div class="flex items-center gap-4">
+            <button onclick="document.getElementById('fileInput').click()" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors border border-gray-600 flex items-center gap-2">
+                <i class="fas fa-folder-open"></i> Open Image
+            </button>
+            <input type="file" id="fileInput" accept="image/*" class="hidden">
+            
+            <button onclick="downloadImage()" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg text-sm font-bold shadow-lg shadow-blue-900/50 transition-all transform active:scale-95 flex items-center gap-2">
+                <i class="fas fa-download"></i> Save
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <div class="flex-1 flex overflow-hidden">
+        
+        <!-- Center Canvas -->
+        <div class="flex-1 canvas-bg relative flex items-center justify-center p-8 overflow-hidden" id="canvasContainer">
+            
+            <!-- Upload Placeholder -->
+            <div id="placeholder" class="absolute inset-0 m-8 flex flex-col items-center justify-center upload-zone rounded-xl cursor-pointer" onclick="document.getElementById('fileInput').click()">
+                <div class="text-center p-10">
+                    <div class="bg-gray-800 p-6 rounded-full inline-block mb-4 shadow-xl">
+                        <i class="fas fa-cloud-upload-alt text-5xl text-gray-500"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-gray-300 mb-2">Drop an image here</h2>
+                    <p class="text-gray-500">or click to browse your files</p>
+                </div>
+            </div>
+
+            <!-- Image Element (Hidden initially) -->
+            <div class="max-w-full max-h-full shadow-2xl elevation-high relative" style="max-height: 85vh;">
+                <img id="image" src="" alt="" class="max-w-full hidden">
+            </div>
+
+            <!-- Text Overlay Layer (Draggable) -->
+            <div id="textLayer">Sample Text</div>
+            
+            <!-- Toast Notification -->
+            <div id="toast" class="absolute bottom-5 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full shadow-xl border border-gray-700 opacity-0 transition-opacity duration-300 pointer-events-none z-50 flex items-center gap-3">
+                <i class="fas fa-info-circle text-blue-500"></i>
+                <span id="toastMsg">Notification</span>
+            </div>
+        </div>
+
+        <!-- Right Sidebar -->
+        <div class="w-80 bg-gray-800 border-l border-gray-700 flex flex-col overflow-y-auto shrink-0 z-10">
+            <div class="p-5 space-y-8">
+
+                <!-- Transform Controls -->
+                <div class="space-y-3">
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                        <i class="fas fa-sync-alt"></i> Orientation
+                    </h3>
+                    <div class="grid grid-cols-4 gap-2">
+                        <button onclick="rotate(-90)" class="bg-gray-700 hover:bg-gray-600 p-3 rounded-lg text-gray-300 transition-colors" title="Rotate Left">
+                            <i class="fas fa-undo"></i>
+                        </button>
+                        <button onclick="rotate(90)" class="bg-gray-700 hover:bg-gray-600 p-3 rounded-lg text-gray-300 transition-colors" title="Rotate Right">
+                            <i class="fas fa-redo"></i>
+                        </button>
+                        <button onclick="flipX()" class="bg-gray-700 hover:bg-gray-600 p-3 rounded-lg text-gray-300 transition-colors" title="Flip Horizontal">
+                            <i class="fas fa-arrows-alt-h"></i>
+                        </button>
+                        <button onclick="flipY()" class="bg-gray-700 hover:bg-gray-600 p-3 rounded-lg text-gray-300 transition-colors" title="Flip Vertical">
+                            <i class="fas fa-arrows-alt-v"></i>
+                        </button>
+                    </div>
+                    <button onclick="reset()" class="w-full bg-gray-700 hover:bg-red-900/50 hover:text-red-400 text-gray-400 py-2 rounded-lg text-xs font-bold uppercase tracking-wide transition-colors mt-2">
+                        Reset All
+                    </button>
+                </div>
+
+                <!-- Text Overlay Controls (New) -->
+                <div class="space-y-3 pt-4 border-t border-gray-700">
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                        <i class="fas fa-font"></i> Add Text
+                    </h3>
+                    <div class="space-y-2">
+                        <input type="text" id="textInput" placeholder="Enter text here..." class="w-full bg-gray-900 border border-gray-600 rounded-lg p-2.5 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all placeholder-gray-600">
+                        
+                        <div class="flex gap-2">
+                            <input type="color" id="textColor" value="#ffffff" class="h-10 w-12 bg-gray-900 border border-gray-600 rounded cursor-pointer p-1">
+                            <div class="flex-1 flex items-center gap-2 bg-gray-900 border border-gray-600 rounded px-2">
+                                <span class="text-xs text-gray-500">Size</span>
+                                <input type="range" id="textSize" min="10" max="100" value="24" class="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                                <span id="textSizeVal" class="text-xs text-gray-400 w-6">24</span>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-500">Drag text on image to position it.</p>
+                    </div>
+                </div>
+
+                <!-- Aspect Ratio -->
+                <div class="space-y-3 pt-4 border-t border-gray-700">
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                        <i class="fas fa-ruler-combined"></i> Aspect Ratio
+                    </h3>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="setAspectRatio(NaN)" class="bg-blue-600/20 text-blue-400 border border-blue-600/50 hover:bg-blue-600/30 py-2 rounded-lg text-sm font-medium transition-colors active-ratio">Free</button>
+                        <button onclick="setAspectRatio(1)" class="bg-gray-700 hover:bg-gray-600 text-gray-300 py-2 rounded-lg text-sm font-medium transition-colors">Square (1:1)</button>
+                        <button onclick="setAspectRatio(16/9)" class="bg-gray-700 hover:bg-gray-600 text-gray-300 py-2 rounded-lg text-sm font-medium transition-colors">16:9</button>
+                        <button onclick="setAspectRatio(4/3)" class="bg-gray-700 hover:bg-gray-600 text-gray-300 py-2 rounded-lg text-sm font-medium transition-colors">4:3</button>
+                        <button onclick="setAspectRatio(2/3)" class="bg-gray-700 hover:bg-gray-600 text-gray-300 py-2 rounded-lg text-sm font-medium transition-colors">2:3</button>
+                    </div>
+                </div>
+
+                <!-- Resize -->
+                <div class="space-y-3 pt-4 border-t border-gray-700">
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                        <i class="fas fa-compress"></i> Output Size (px)
+                    </h3>
+                    <div class="flex items-center gap-2">
+                        <div class="relative w-full">
+                            <input type="number" id="outputWidth" placeholder="W" class="w-full bg-gray-900 border border-gray-600 rounded-lg p-2.5 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all placeholder-gray-600">
+                            <span class="absolute right-2 top-2.5 text-xs text-gray-600 font-bold">PX</span>
+                        </div>
+                        <span class="text-gray-500">×</span>
+                        <div class="relative w-full">
+                            <input type="number" id="outputHeight" placeholder="H" class="w-full bg-gray-900 border border-gray-600 rounded-lg p-2.5 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all placeholder-gray-600">
+                            <span class="absolute right-2 top-2.5 text-xs text-gray-600 font-bold">PX</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Zoom Controls -->
+                <div class="space-y-3 pt-4 border-t border-gray-700">
+                     <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                        <i class="fas fa-search"></i> Zoom
+                    </h3>
+                    <div class="flex gap-2">
+                        <button onclick="zoom(0.1)" class="flex-1 bg-gray-700 hover:bg-gray-600 py-2 rounded-lg text-gray-300"><i class="fas fa-search-plus"></i></button>
+                        <button onclick="zoom(-0.1)" class="flex-1 bg-gray-700 hover:bg-gray-600 py-2 rounded-lg text-gray-300"><i class="fas fa-search-minus"></i></button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    <script>
+        const image = document.getElementById('image');
+        const fileInput = document.getElementById('fileInput');
+        const placeholder = document.getElementById('placeholder');
+        const outputWidthInput = document.getElementById('outputWidth');
+        const outputHeightInput = document.getElementById('outputHeight');
+        
+        // Text Overlay Elements
+        const textLayer = document.getElementById('textLayer');
+        const textInput = document.getElementById('textInput');
+        const textColorInput = document.getElementById('textColor');
+        const textSizeInput = document.getElementById('textSize');
+        const textSizeVal = document.getElementById('textSizeVal');
+
+        let cropper;
+        let scaleX = 1;
+        let scaleY = 1;
+
+        // --- File Handling ---
+        
+        fileInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
+
+        const dropZone = document.body;
+        
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            if(!cropper) placeholder.style.borderColor = '#3b82f6';
+        });
+        
+        dropZone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            if(!cropper) placeholder.style.borderColor = '#4b5563';
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            if(!cropper) placeholder.style.borderColor = '#4b5563';
+            if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                handleFile(e.dataTransfer.files[0]);
+            }
+        });
+
+        function handleFile(file) {
+            if (!file || !file.type.startsWith('image/')) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                if(cropper) cropper.destroy();
+                
+                image.src = event.target.result;
+                image.classList.remove('hidden');
+                placeholder.classList.add('hidden');
+
+                // Reset Text Layer
+                textInput.value = '';
+                textLayer.style.display = 'none';
+
+                cropper = new Cropper(image, {
+                    viewMode: 1, 
+                    dragMode: 'move',
+                    aspectRatio: NaN,
+                    autoCropArea: 0.9,
+                    background: false,
+                    responsive: true,
+                    restore: false,
+                    modal: true,
+                    guides: true,
+                    center: true,
+                    highlight: false,
+                    cropBoxMovable: true,
+                    cropBoxResizable: true,
+                    toggleDragModeOnDblclick: false,
+                });
+                
+                showToast('Image loaded successfully');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // --- Transformation Logic ---
+
+        function rotate(deg) { if(cropper) cropper.rotate(deg); }
+        function zoom(ratio) { if(cropper) cropper.zoom(ratio); }
+
+        function flipX() {
+            if(!cropper) return;
+            scaleX = -scaleX;
+            cropper.scaleX(scaleX);
+        }
+
+        function flipY() {
+            if(!cropper) return;
+            scaleY = -scaleY;
+            cropper.scaleY(scaleY);
+        }
+
+        function reset() {
+            if(cropper) {
+                cropper.reset();
+                scaleX = 1;
+                scaleY = 1;
+                cropper.scale(1, 1);
+                outputWidthInput.value = '';
+                outputHeightInput.value = '';
+                setAspectRatio(NaN);
+                // Reset Text
+                textInput.value = '';
+                updateTextLayer();
+            }
+        }
+
+        function setAspectRatio(ratio) {
+            if(cropper) {
+                cropper.setAspectRatio(ratio);
+                const buttons = document.querySelectorAll('.grid button');
+                buttons.forEach(btn => btn.className = "bg-gray-700 hover:bg-gray-600 text-gray-300 py-2 rounded-lg text-sm font-medium transition-colors");
+                const clickedBtn = event.target.closest('button');
+                if(clickedBtn) clickedBtn.className = "bg-blue-600/20 text-blue-400 border border-blue-600/50 hover:bg-blue-600/30 py-2 rounded-lg text-sm font-medium transition-colors active-ratio";
+            }
+        }
+
+        // --- Text Overlay Logic ---
+
+        function updateTextLayer() {
+            const text = textInput.value;
+            if(text) {
+                textLayer.style.display = 'block';
+                textLayer.innerText = text;
+                textLayer.style.color = textColorInput.value;
+                textLayer.style.fontSize = textSizeInput.value + 'px';
+                // Add shadow for better visibility on all backgrounds
+                textLayer.style.textShadow = '0px 2px 4px rgba(0,0,0,0.6)';
+            } else {
+                textLayer.style.display = 'none';
+            }
+        }
+
+        textInput.addEventListener('input', updateTextLayer);
+        textColorInput.addEventListener('input', updateTextLayer);
+        textSizeInput.addEventListener('input', () => {
+            textSizeVal.innerText = textSizeInput.value;
+            updateTextLayer();
+        });
+
+        // Draggable Text Logic
+        let isDraggingText = false;
+        let startX, startY, initialLeft, initialTop;
+
+        textLayer.addEventListener('mousedown', (e) => {
+            isDraggingText = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            
+            // Get current position
+            const rect = textLayer.getBoundingClientRect();
+            const parentRect = textLayer.parentElement.getBoundingClientRect();
+            
+            // If it was centered with transform, we need to fix it to pixels now
+            if (textLayer.style.transform) {
+                textLayer.style.left = (rect.left - parentRect.left) + 'px';
+                textLayer.style.top = (rect.top - parentRect.top) + 'px';
+                textLayer.style.transform = 'none'; // Remove centering transform
+            }
+
+            initialLeft = parseInt(textLayer.style.left || 0);
+            initialTop = parseInt(textLayer.style.top || 0);
+
+            e.preventDefault(); // Prevent text selection
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isDraggingText) return;
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+            textLayer.style.left = (initialLeft + dx) + 'px';
+            textLayer.style.top = (initialTop + dy) + 'px';
+        });
+
+        window.addEventListener('mouseup', () => {
+            isDraggingText = false;
+        });
+
+
+        // --- Download Logic with Text Composite ---
+
+        function downloadImage() {
+            if (!cropper) {
+                showToast('Please open an image first', true);
+                return;
+            }
+
+            const width = parseInt(outputWidthInput.value);
+            const height = parseInt(outputHeightInput.value);
+
+            let options = {
+                imageSmoothingEnabled: true,
+                imageSmoothingQuality: 'high',
+            };
+
+            if (width > 0) options.width = width;
+            if (height > 0) options.height = height;
+
+            // 1. Get Base Cropped Canvas
+            let canvas = cropper.getCroppedCanvas(options);
+
+            if (!canvas) {
+                showToast('Error processing image', true);
+                return;
+            }
+
+            // 2. Draw Text if it exists
+            if (textInput.value.trim() !== '') {
+                canvas = addTextToCanvas(canvas);
+            }
+
+            // 3. Download
+            canvas.toBlob((blob) => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `edited_image_${new Date().getTime()}.png`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                showToast('Image downloaded!');
+            }, 'image/png', 1.0);
+        }
+
+        function addTextToCanvas(canvas) {
+            const ctx = canvas.getContext('2d');
+            const cropBox = cropper.getCropBoxData(); // Dimensions of crop box on screen
+            const container = document.querySelector('.cropper-container');
+            const containerRect = container.getBoundingClientRect();
+            const textRect = textLayer.getBoundingClientRect();
+
+            // Calculate scale factor (Final Image Width / Screen Crop Box Width)
+            const scale = canvas.width / cropBox.width;
+
+            // Calculate text position relative to the CROP BOX on screen
+            // Text Screen X - Container Screen X - Crop Box Offset X
+            const textLeftRelativeToCropBox = (textRect.left - containerRect.left) - cropBox.left;
+            const textTopRelativeToCropBox = (textRect.top - containerRect.top) - cropBox.top;
+
+            // Scale coordinates for final image
+            const finalX = textLeftRelativeToCropBox * scale;
+            const finalY = textTopRelativeToCropBox * scale;
+            
+            // Scale font size
+            const fontSize = parseInt(textSizeInput.value) * scale;
+            
+            // Draw Text
+            ctx.font = `bold ${fontSize}px sans-serif`;
+            ctx.fillStyle = textColorInput.value;
+            ctx.textBaseline = 'top';
+            
+            // Add shadow to match UI
+            ctx.shadowColor = 'rgba(0,0,0,0.6)';
+            ctx.shadowBlur = 4 * scale;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 2 * scale;
+
+            // We add a small padding compensation similar to the UI padding
+            const paddingComp = 4 * scale;
+
+            ctx.fillText(textInput.value, finalX + paddingComp, finalY + paddingComp);
+
+            return canvas;
+        }
+
+        // --- Utils ---
+
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toast');
+            const msgSpan = document.getElementById('toastMsg');
+            const icon = toast.querySelector('i');
+
+            msgSpan.innerText = message;
+            icon.className = isError ? "fas fa-exclamation-circle text-red-500" : "fas fa-check-circle text-green-500";
+            toast.style.opacity = '1';
+            setTimeout(() => { toast.style.opacity = '0'; }, 3000);
+        }
+    </script>
+</body>
+</html>
