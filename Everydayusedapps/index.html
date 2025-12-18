@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Everyday Used Apps</title>
+    <link rel="stylesheet" href="index.css">
+</head>
+<body>
+
+    <div class="app-container">
+        
+        <!-- NAVIGATION -->
+        <nav>
+            <div class="logo" onclick="switchView('dashboard')">Apps<span style="color:#4F46E5">.</span></div>
+            <div class="nav-links">
+                <div class="nav-link" onclick="switchView('about')">About</div>
+                <div class="nav-link" onclick="switchView('contact')">Contact</div>
+            </div>
+        </nav>
+
+        <!-- DASHBOARD VIEW -->
+        <div id="dashboard-view" class="view-section active-view">
+            <div class="hero">
+                <h1>Simplifying your<br>Android life.</h1>
+                <p>Curated, minimal, and efficient tools designed specifically for your daily workflow.</p>
+            </div>
+
+            <!-- List container -->
+            <div class="app-list" id="app-list-container">
+                <!-- App cards injected via JS -->
+            </div>
+        </div>
+
+        <!-- ABOUT VIEW -->
+        <div id="about-view" class="view-section">
+            <div class="page-content">
+                <h2 class="page-title">Who We Are</h2>
+                <p class="page-text">
+                    Everyday Used Apps was born from a simple frustration: mobile apps have become too complicated. They are filled with ads, unnecessary features, and cluttered interfaces.
+                </p>
+                <p class="page-text">
+                    We are a small team of developers and designers dedicated to building "One Thing Well" apps. We believe software should be invisible, helping you achieve your task without getting in the way.
+                </p>
+
+                <div class="stat-grid">
+                    <div class="stat-card">
+                        <span class="stat-num">500K+</span>
+                        <span class="stat-label">Downloads</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-num">4.8</span>
+                        <span class="stat-label">Avg Rating</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-num">4</span>
+                        <span class="stat-label">Apps</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-num">0</span>
+                        <span class="stat-label">Ads</span>
+                    </div>
+                </div>
+
+                <p class="page-text">
+                    Our promise is simple: No data mining, no intrusive ads, and designs that respect your battery life and your attention span.
+                </p>
+            </div>
+        </div>
+
+        <!-- CONTACT VIEW -->
+        <div id="contact-view" class="view-section">
+            <div class="page-content">
+                <h2 class="page-title">Get in Touch</h2>
+                <p class="page-text">
+                    Have a feature request, found a bug, or just want to say hi? We'd love to hear from you.
+                </p>
+
+                <form onsubmit="event.preventDefault(); alert('Message sent! We will get back to you shortly.');">
+                    <div class="form-group">
+                        <label class="form-label">Name</label>
+                        <input type="text" class="form-input" placeholder="Your Name" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-input" placeholder="hello@example.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Message</label>
+                        <textarea class="form-textarea" placeholder="How can we help?" required></textarea>
+                    </div>
+                    <button type="submit" class="submit-btn">Send Message</button>
+                </form>
+
+                <div style="margin-top: 40px; text-align: center;">
+                    <p class="page-text" style="font-size: 14px;">Or email us directly at <br><strong>support@everydayusedapps.com</strong></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SHARED FOOTER -->
+        <footer class="site-footer">
+            <div class="footer-links">
+                <span class="footer-link" onclick="window.open('json_parser_tool.html', '_blank')">JSON Parser</span>
+            </div>
+            <div class="footer-links">
+                <div class="footer-link" onclick="switchView('privacy')">Privacy</div>
+                <div class="footer-link" onclick="switchView('terms')">Terms</div>
+                <div class="footer-link" onclick="switchView('contact')">Support</div>
+            </div>
+            <div class="copyright">
+                &copy; 2025 Everyday Used Apps. Made with &hearts; for Android.
+            </div>
+        </footer>
+
+        <!-- DETAILS VIEW (Overlay with Blur) -->
+        <div id="details-view">
+            <div class="details-scroll-container">
+                <nav class="details-nav">
+                    <span style="font-weight: 600;">App Details</span>
+                    <button class="close-btn" onclick="closeDetails()">✕</button>
+                </nav>
+                <div id="details-content">
+                    <!-- Details injected here -->
+                </div>
+                <div id="details-footer-container"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- DATA ---
+        const apps = [
+            {
+                id: 1,
+                name: "Mini Calculator",
+                category: "Productivity",
+                desc: "Organize your life with simple to-do lists and smart reminders.",
+                updateHighlight: "New: Dark Mode added",
+                icon: "./assets/calculator_icon.jpeg",
+                colorBg: "#E0F2FE",
+                colorText: "#0284C7",
+                version: "2.0",
+                size: "12 MB",
+                dev: "EverydayLabs",
+                downloads: "10K+",
+                rating: "4.8",
+                update:"Dec-2025",
+                longDesc: "Daily Task Manager removes the clutter from productivity. Focus on what matters with a clean, distraction-free interface designed for getting things done. Create lists, set reminders, and track your progress without the noise.",
+                features: ["Dark Mode Support", "Minimal Interface"],
+                screenshots: [
+                    "./assets/calculator_sc01.jpeg",
+                    "./assets/calculator_sc02.jpeg",
+                    "./assets/calculator_sc03.jpeg",
+                    "./assets/calculator_sc04.jpeg",
+                ],
+                link:"https://play.google.com/store/apps/details?id=com.everydayusedapp.minicalculator&hl=en_IN",
+            },
+            {
+                id: 2,
+                name: "Focus Sounds",
+                category: "Health & Sleep",
+                desc: "White noise and lo-fi beats for deep work and relaxation.",
+                updateHighlight: "Added: 5 New Nature Sounds",
+                icon: "./assets/focus_sound_icon.png",
+                colorBg: "#F3E8FF",
+                colorText: "#9333EA",
+                version: "1.1.5",
+                size: "45 MB",
+                dev: "ZenAudio",
+                downloads: "5K+",
+                rating: "4.9",
+                update:"Dec-2025",
+                longDesc: "Struggling to concentrate? Focus Sounds provides a curated library of high-quality ambient noises and lo-fi beats to help you enter the flow state. Perfect for studying, working, or sleeping.",
+                features: ["Offline Playback", "Sleep Timer", "Custom Mixes", "Background Play"],
+                screenshots: [
+                    "./assets/calculator_sc01.jpeg",
+                    "./assets/calculator_sc02.jpeg",
+                    "./assets/calculator_sc03.jpeg",
+                    "./assets/calculator_sc04.jpeg",
+                ],
+                link:"https:",
+
+            },
+            {
+                id: 3,
+                name: "Expense Tracker",
+                category: "Finance",
+                desc: "Track every rupee with minimal clicks and insightful charts.",
+                updateHighlight: "Improved: Excel Export",
+                icon: "./assets/expense_tracker_icon.png",
+                colorBg: "#DCFCE7",
+                colorText: "#16A34A",
+                version: "3.0.1",
+                size: "8 MB",
+                dev: "FinTech Simple",
+                downloads: "25K+",
+                rating: "4.7",
+                update:"Dec-2025",
+                longDesc: "Stop wondering where your money went. Expense Tracker offers the fastest way to log transactions on the go, with beautiful charts to visualize your spending habits over time.",
+                features: ["Excel Export", "Budget Alerts", "No Ads", "Category Icons"],
+                screenshots: [
+                    "./assets/calculator_sc01.jpeg",
+                    "./assets/calculator_sc02.jpeg",
+                    "./assets/calculator_sc03.jpeg",
+                    "./assets/calculator_sc04.jpeg",
+                ],
+                link:"",
+            },
+            {
+                id: 4,
+                name: "Quick Notes",
+                category: "Utilities",
+                desc: "Capture ideas instantly before they fade away.",
+                updateHighlight: "Fixed: Sync issues",
+                icon: "./assets/quick_notes_icon.png",
+                colorBg: "#FFEDD5",
+                colorText: "#EA580C",
+                version: "1.0.0",
+                size: "5 MB",
+                dev: "EverydayLabs",
+                downloads: "1K+",
+                rating: "5.0",
+                update:"Dec-2025", 
+                longDesc: "The fastest notepad on Android. Opens in milliseconds so you never lose a thought. Supports markdown for formatting and simple folders for organization.",
+                features: ["Markdown Support", "Instant Search", "Auto-Save", "Pin Notes"],
+                screenshots: [
+                    "./assets/calculator_sc01.jpeg",
+                    "./assets/calculator_sc02.jpeg",
+                    "./assets/calculator_sc03.jpeg",
+                    "./assets/calculator_sc04.jpeg",
+                ],
+                link:"",
+            }
+        ];
+
+        // --- NAVIGATION LOGIC ---
+        function switchView(viewName) {
+            document.querySelectorAll('.view-section').forEach(el => {
+                el.classList.remove('active-view');
+            });
+
+            if (viewName === 'privacy' || viewName === 'terms') {
+                alert('This would be the ' + viewName + ' page.');
+                document.getElementById('dashboard-view').classList.add('active-view');
+                return;
+            }
+
+            const targetId = viewName + '-view';
+            const target = document.getElementById(targetId);
+            if (target) {
+                target.classList.add('active-view');
+                window.scrollTo(0,0);
+            } else {
+                document.getElementById('dashboard-view').classList.add('active-view');
+            }
+        }
+
+        // --- RENDER LOGIC ---
+        const listContainer = document.getElementById('app-list-container');
+
+        // Function to create expanded card HTML
+        function createAppCard(app) {
+            const card = document.createElement('div');
+            card.className = 'app-card fade-up';
+            // REMOVED LEFT BORDER AS REQUESTED
+            card.onclick = () => openDetails(app);
+            card.innerHTML = `
+                <div class="card-header">
+                    <div class="card-icon" style="background-color: ${app.colorBg};">
+                        <img src="${app.icon}" alt="${app.name}" style="width: 60%; height: 60%;">
+                    </div>
+                    <span class="card-category">${app.category}</span>
+                </div>
+                
+                <div class="card-content">
+                    <div class="card-title">${app.name}</div>
+                    <div class="card-desc">${app.desc}</div>
+                    
+                    <div class="card-highlight">
+                        <div class="highlight-title">What's New</div>
+                        <div class="highlight-text">${app.updateHighlight}</div>
+                    </div>
+                </div>
+                
+                <div class="card-footer">
+                    <div class="card-meta">
+                        <span class="meta-chip"><span class="star-icon">★</span> ${app.rating}</span>
+                        <span class="meta-chip">↓ ${app.downloads}</span>
+                        <span class="meta-chip" style="background:transparent; border:1px solid #E5E7EB; padding: 3px 8px;">Free</span>
+                    </div>
+                    <div class="card-arrow">➜</div>
+                </div>
+            `;
+            return card;
+        }
+
+        // Render Cards
+        apps.forEach((app, index) => {
+            const card = createAppCard(app);
+            card.style.animationDelay = `${index * 0.05}s`;
+            listContainer.appendChild(card);
+        });
+
+        // --- DETAILS LOGIC ---
+        const detailsView = document.getElementById('details-view');
+        const detailsContent = document.getElementById('details-content');
+        const detailsFooterContainer = document.getElementById('details-footer-container');
+
+        function openDetails(app) {
+            const ssColor = app.colorBg;
+            
+            detailsContent.innerHTML = `
+                <div class="details-hero fade-up">
+                   <div class="details-icon-large" style="background-color: ${app.colorBg};">
+                        <img src="${app.icon}" alt="${app.name}" style="width: 80px; height: 80px; border-radius: 16px;">
+                    </div>
+
+                    <div class="details-title">${app.name}</div>
+                    <div class="details-meta">
+                        <span>${app.dev}</span> • <span>v${app.version}</span>
+                    </div>
+                    <button class="install-btn" onclick="window.open('${app.link}', '_blank')">
+                        Download for Android
+                    </button>
+                </div>
+
+               <div class="screenshots-container fade-up" style="animation-delay: 0.1s">
+                    ${app.screenshots.map(src => `
+                        <div class="screenshot">
+                            <img src="${src}" alt="${app.name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 16px;">
+                        </div>
+                    `).join('')}
+                </div>
+
+                <div class="details-content fade-up" style="animation-delay: 0.2s">
+                    <div class="section-title">About this app</div>
+                    <p class="description-text">${app.longDesc}</p>
+                    
+                    <div class="info-grid">
+                        <div class="info-card">
+                            <div class="info-label">Downloads</div>
+                            <div class="info-value">${app.downloads}</div>
+                        </div>
+                        <div class="info-card">
+                            <div class="info-label">Size</div>
+                            <div class="info-value">${app.size}</div>
+                        </div>
+                        <div class="info-card">
+                            <div class="info-label">Rating</div>
+                            <div class="info-value">${app.rating} ★</div>
+                        </div>
+                        <div class="info-card">
+                            <div class="info-label">Updated</div>
+                            <div class="info-value">${app.update}</div>
+                        </div>
+                    </div>
+
+                    <div class="section-title">Key Features</div>
+                    <div style="display: grid; gap: 12px;">
+                        ${app.features.map(f => `
+                            <div style="display:flex; align-items:center; gap:12px; padding:16px; background:rgba(255,255,255,0.7); border-radius:16px; box-shadow:var(--shadow-sm);">
+                                <span style="color:${app.colorText}; font-weight:bold; font-size:18px;">✓</span>
+                                <span style="color:#374151; font-weight:600;">${f}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+
+            detailsFooterContainer.innerHTML = `
+                <footer class="site-footer" style="background: transparent; border-top: 1px solid rgba(0,0,0,0.05); margin-top: 40px;">
+                    <div class="footer-links">
+                        <span class="footer-link" onclick="window.open('privacypolicy.html', '_blank')">Privacy</span>
+                        <span class="footer-link" onclick="window.open('mailto:developer@example.com', '_blank')">Developer Contact</span>
+                    </div>
+                    <div class="copyright">
+                        &copy; 2025 ${app.dev}. All rights reserved.
+                    </div>
+                </footer>
+            `;
+
+            detailsView.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeDetails() {
+            detailsView.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- SEO Meta Tags -->
+    <title>JSON Parser & Viewer | Format, Edit, and Save JSON Locally</title>
+    <meta name="description" content="A powerful, privacy-first JSON parser. Format messy code, validate syntax, and save your JSON files locally in your browser to access them later—no data ever leaves your machine.">
+    <meta name="keywords" content="JSON Parser, JSON Formatter, JSON Viewer, Pretty Print JSON, JSON Validator, JSON Beautifier, De-stringify JSON, Offline JSON Viewer, Private JSON Parser, Client-side JSON Tools, JSON Editor with Local Save, Browser-based JSON Storage, Save JSON to LocalStorage, Persistent JSON Editor, JSON Tree Viewer, JSON Path Finder, JSON to Table Converter, Minify JSON, JSON Debugger, Inspect JSON Objects, JSON Schema Validator">
+    <meta name="robots" content="index, follow">
+    <meta name="author" content="JSON Tools">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="JSON Parser & Viewer | Format, Edit, and Save JSON Locally">
+    <meta property="og:description" content="A powerful, privacy-first JSON parser. Format messy code, validate syntax, and save your JSON files locally in your browser to access them later—no data ever leaves your machine.">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:title" content="JSON Parser & Viewer | Format, Edit, and Save JSON Locally">
+    <meta property="twitter:description" content="A powerful, privacy-first JSON parser. Format messy code, validate syntax, and save your JSON files locally in your browser to access them later—no data ever leaves your machine.">
+
+    <style>
+        :root {
+            --bg-color: #f4f4f9;
+            --panel-bg: #ffffff;
+            --border-color: #ddd;
+            --primary-color: #007bff;
+            --error-color: #dc3545;
+            --text-color: #333;
+            --sidebar-width: 280px;
+            
+            /* Syntax Highlighting */
+            --code-key: #881391;
+            --code-string: #c41a16;
+            --code-number: #1c00cf;
+            --code-boolean: #0000ff;
+            --code-null: #808080;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--bg-color);
+            overflow: hidden;
+        }
+
+        /* --- Header --- */
+        header {
+            background-color: #333;
+            color: white;
+            padding: 0 1rem;
+            height: 60px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            z-index: 20;
+        }
+
+        h1 { margin: 0; font-size: 1.2rem; display: flex; align-items: center; gap: 10px; }
+
+        .controls { display: flex; gap: 10px; }
+
+        button {
+            padding: 8px 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: background 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-primary { background-color: var(--primary-color); color: white; }
+        .btn-primary:hover { background-color: #0056b3; }
+
+        .btn-secondary { background-color: #6c757d; color: white; }
+        .btn-secondary:hover { background-color: #545b62; }
+
+        .btn-success { background-color: #28a745; color: white; }
+        .btn-success:hover { background-color: #218838; }
+
+        .btn-menu { background-color: #444; color: white; }
+        .btn-menu:hover { background-color: #555; }
+
+        /* --- Layout --- */
+        .workspace {
+            display: flex;
+            flex: 1;
+            height: calc(100vh - 60px);
+            position: relative;
+        }
+
+        /* --- Sidebar (File Menu) --- */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: #fff;
+            border-right: 1px solid #ddd;
+            display: flex;
+            flex-direction: column;
+            position: absolute;
+            left: calc(var(--sidebar-width) * -1); /* Hidden by default */
+            top: 0;
+            bottom: 0;
+            transition: left 0.3s ease;
+            z-index: 15;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+        }
+
+        .sidebar.open {
+            left: 0;
+        }
+
+        .sidebar-header {
+            padding: 15px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .sidebar-actions {
+            padding: 10px;
+            display: flex;
+            gap: 5px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .sidebar-actions button {
+            flex: 1;
+            font-size: 0.8rem;
+            padding: 6px;
+            justify-content: center;
+        }
+
+        .file-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        /* File/Folder Tree Items */
+        .fs-item {
+            padding: 6px 8px;
+            cursor: pointer;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            margin-bottom: 2px;
+            user-select: none;
+        }
+        .fs-item:hover { background-color: #f0f0f0; }
+        .fs-item.active { background-color: #e3f2fd; color: var(--primary-color); }
+        
+        .fs-icon { margin-right: 8px; font-size: 1.1em; width: 20px; text-align: center; }
+        .fs-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.95rem; }
+        .fs-delete { 
+            opacity: 0; color: #dc3545; padding: 2px 6px; font-size: 1rem; border-radius: 4px;
+        }
+        .fs-item:hover .fs-delete { opacity: 1; }
+        .fs-delete:hover { background-color: #ffebee; }
+
+        .folder-contents {
+            margin-left: 18px;
+            border-left: 1px solid #eee;
+            display: none;
+        }
+        .folder-contents.expanded { display: block; }
+
+        /* --- Main Content Split --- */
+        .main-container {
+            flex: 1;
+            display: flex;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow: hidden;
+            margin-left: 0;
+            transition: margin-left 0.3s ease;
+        }
+        
+        .workspace.sidebar-active .main-container {
+            margin-left: var(--sidebar-width);
+        }
+
+        .panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            min-width: 200px;
+        }
+
+        .panel-header {
+            background: #eee;
+            padding: 10px;
+            font-weight: bold;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* Resizer Gutter */
+        .gutter {
+            width: 14px;
+            cursor: col-resize;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: transparent;
+            flex-shrink: 0;
+            user-select: none;
+            z-index: 10;
+        }
+        .gutter::after {
+            content: "";
+            width: 4px;
+            height: 40px;
+            background-color: #ccc;
+            border-radius: 2px;
+            transition: all 0.2s;
+        }
+        .gutter:hover::after, .gutter.resizing::after {
+            background-color: var(--primary-color);
+            height: 100%;
+        }
+
+        /* Areas */
+        textarea {
+            flex: 1;
+            border: none;
+            resize: none;
+            padding: 15px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .output-container {
+            flex: 1;
+            padding: 15px;
+            overflow: auto;
+            position: relative;
+            background-color: #fafafa;
+        }
+
+        /* JSON Tree Styling */
+        .json-tree { font-family: 'Courier New', Courier, monospace; font-size: 14px; line-height: 1.5; }
+        .json-row { display: block; position: relative; }
+        .collapsible-header { cursor: pointer; display: inline-block; user-select: none; border-radius: 3px; }
+        .collapsible-header:hover { background-color: #e6e6e6; }
+        .toggle-icon { display: inline-block; width: 14px; text-align: center; font-size: 10px; color: #666; transition: transform 0.1s; }
+        .children-container { margin-left: 20px; border-left: 1px solid #e0e0e0; padding-left: 5px; }
+        .collapsed .children-container { display: none !important; }
+        .collapsed .toggle-icon { transform: rotate(-90deg); }
+        .collapsed-preview { display: none; color: #888; font-style: italic; }
+        .collapsed .collapsed-preview { display: inline; }
+        
+        .key { color: var(--code-key); }
+        .string { color: var(--code-string); }
+        .number { color: var(--code-number); }
+        .boolean { color: var(--code-boolean); }
+        .null { color: var(--code-null); }
+        .bracket { color: #333; font-weight: bold; }
+
+        .error-box {
+            display: none;
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border: 1px solid #f5c6cb;
+            border-radius: 4px;
+            margin-top: 10px;
+            font-family: monospace;
+        }
+
+        /* --- Modals --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none; justify-content: center; align-items: center;
+            z-index: 100;
+        }
+        .modal {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 350px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .modal h2 { margin-top: 0; font-size: 1.2rem; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9rem; }
+        .form-group input, .form-group select {
+            width: 100%; padding: 8px; box-sizing: border-box;
+            border: 1px solid #ccc; border-radius: 4px;
+        }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+
+        /* Notification */
+        .toast {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: #333; color: white; padding: 10px 20px;
+            border-radius: 20px; opacity: 0; pointer-events: none;
+            transition: opacity 0.3s; z-index: 200;
+        }
+        .toast.show { opacity: 1; }
+
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>
+        <button class="btn-menu" onclick="toggleSidebar()">☰</button>
+        JSON Parser & Formatter
+    </h1>
+    <div class="controls">
+        <button class="btn-secondary" onclick="toggleSidebar()">📁 My Files</button>
+        <button class="btn-success" onclick="openSaveModal()">💾 Save JSON</button>
+        <button class="btn-primary" onclick="processJson()">▶ Format</button>
+        <button class="btn-secondary" onclick="clearAll()">🧹 Clear</button>
+    </div>
+</header>
+
+<div class="workspace" id="workspace">
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <strong>Saved Files</strong>
+            <button style="padding:4px;" onclick="toggleSidebar()">✕</button>
+        </div>
+        <div class="sidebar-actions">
+            <button class="btn-secondary" onclick="openFolderModal()">+ Folder</button>
+        </div>
+        <div class="file-list" id="fileTree">
+            <!-- Tree generated by JS -->
+            <div style="padding: 10px; color: #777; font-size: 0.9rem;">No files saved.</div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-container">
+        <!-- Left Side: Input -->
+        <div class="panel" id="leftPanel">
+            <div class="panel-header">Raw JSON Input</div>
+            <textarea id="jsonInput" placeholder='{"paste": "your_json_here"}'></textarea>
+        </div>
+
+        <!-- Draggable Divider -->
+        <div class="gutter" id="resizer"></div>
+
+        <!-- Right Side: Output -->
+        <div class="panel" id="rightPanel">
+            <div class="panel-header">
+                <span id="outputTitle">Formatted Output</span>
+                <div style="display: flex; gap: 5px;">
+                    <button style="padding:2px 8px; font-size:0.8rem;" onclick="downloadOutput()">Download</button>
+                    <button style="padding:2px 8px; font-size:0.8rem;" onclick="copyOutput()">Copy</button>
+                </div>
+            </div>
+            
+            <div class="output-container" id="outputContainer">
+                <div id="jsonTree" class="json-tree"></div>
+                <div id="errorDisplay" class="error-box"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Save File Modal -->
+<div class="modal-overlay" id="saveModal">
+    <div class="modal">
+        <h2>Save JSON</h2>
+        <div class="form-group">
+            <label>File Name</label>
+            <input type="text" id="saveFileName" placeholder="e.g., config_v1">
+        </div>
+        <div class="form-group">
+            <label>Select Folder</label>
+            <select id="saveFolderSelect"></select>
+        </div>
+        <div class="modal-actions">
+            <button class="btn-secondary" onclick="closeModal('saveModal')">Cancel</button>
+            <button class="btn-success" onclick="confirmSave()">Save</button>
+        </div>
+    </div>
+</div>
+
+<!-- New Folder Modal -->
+<div class="modal-overlay" id="folderModal">
+    <div class="modal">
+        <h2>New Folder</h2>
+        <div class="form-group">
+            <label>Folder Name</label>
+            <input type="text" id="newFolderName" placeholder="e.g., Project A">
+        </div>
+        <div class="modal-actions">
+            <button class="btn-secondary" onclick="closeModal('folderModal')">Cancel</button>
+            <button class="btn-primary" onclick="confirmNewFolder()">Create</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Notification -->
+<div class="toast" id="toast">Saved Successfully!</div>
+
+<script>
+    // --- State & DOM ---
+    const inputArea = document.getElementById('jsonInput');
+    const treeContainer = document.getElementById('jsonTree');
+    const errorDisplay = document.getElementById('errorDisplay');
+    const sidebar = document.getElementById('sidebar');
+    const workspace = document.getElementById('workspace');
+    const fileTreeDiv = document.getElementById('fileTree');
+
+    let currentJsonStr = ''; // For clipboard
+    
+    // File System Data Structure (Array of nodes)
+    // Node: { id, name, type: 'file'|'folder', parentId: null|id, content, date }
+    let fileSystem = [];
+
+    // --- Initialization ---
+    window.addEventListener('load', () => {
+        loadFileSystem();
+        renderFileTree();
+        loadLastSession(); // Check for auto-saved work
+    });
+
+    // --- Auto-Save Logic (Scratchpad) ---
+    const AUTOSAVE_KEY = 'jsonParser_autosave_v1';
+    
+    // Auto-save on input with debounce
+    let autoSaveTimeout;
+    inputArea.addEventListener('input', () => {
+        clearTimeout(autoSaveTimeout);
+        autoSaveTimeout = setTimeout(() => {
+            localStorage.setItem(AUTOSAVE_KEY, inputArea.value);
+        }, 500); // Save after 500ms of inactivity
+    });
+
+    function loadLastSession() {
+        const savedWork = localStorage.getItem(AUTOSAVE_KEY);
+        // Only restore if there is saved work and the input area is currently empty
+        // This prevents overwriting if the user refreshed a page with default content (unlikely here)
+        if (savedWork && !inputArea.value) {
+            inputArea.value = savedWork;
+            if (savedWork.trim()) {
+                processJson(); // Auto-format on load
+                showToast("Restored last session");
+            }
+        }
+    }
+
+    // --- File System Logic ---
+    function loadFileSystem() {
+        const stored = localStorage.getItem('jsonParser_fs');
+        if (stored) {
+            try {
+                fileSystem = JSON.parse(stored);
+            } catch(e) { console.error("FS Load Error", e); fileSystem = []; }
+        }
+    }
+
+    function saveFileSystem() {
+        localStorage.setItem('jsonParser_fs', JSON.stringify(fileSystem));
+        renderFileTree();
+    }
+
+    function createId() {
+        return 'id-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+    }
+
+    // --- UI Actions: Sidebar ---
+    function toggleSidebar() {
+        sidebar.classList.toggle('open');
+        workspace.classList.toggle('sidebar-active');
+    }
+
+    function renderFileTree() {
+        fileTreeDiv.innerHTML = '';
+        if (fileSystem.length === 0) {
+            fileTreeDiv.innerHTML = '<div style="padding:10px; color:#999; text-align:center;">No files.<br>Click "Save JSON" to start.</div>';
+            return;
+        }
+
+        // Separate Root items
+        const rootItems = fileSystem.filter(item => !item.parentId);
+        // Sort: Folders first, then Files
+        rootItems.sort((a, b) => {
+            if (a.type === b.type) return a.name.localeCompare(b.name);
+            return a.type === 'folder' ? -1 : 1;
+        });
+
+        rootItems.forEach(item => {
+            fileTreeDiv.appendChild(createFileNode(item));
+        });
+    }
+
+    function createFileNode(item) {
+        const container = document.createElement('div');
+        
+        const row = document.createElement('div');
+        row.className = 'fs-item';
+        row.dataset.id = item.id;
+        
+        // Icon
+        const icon = document.createElement('span');
+        icon.className = 'fs-icon';
+        icon.textContent = item.type === 'folder' ? '📁' : '📄';
+        
+        // Name
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'fs-name';
+        nameSpan.textContent = item.name;
+
+        // Delete Button
+        const delBtn = document.createElement('span');
+        delBtn.className = 'fs-delete';
+        delBtn.textContent = '🗑';
+        delBtn.title = 'Delete';
+        delBtn.onclick = (e) => {
+            e.stopPropagation();
+            deleteItem(item.id);
+        };
+
+        row.appendChild(icon);
+        row.appendChild(nameSpan);
+        row.appendChild(delBtn);
+
+        container.appendChild(row);
+
+        // Click Logic
+        if (item.type === 'folder') {
+            const childrenContainer = document.createElement('div');
+            childrenContainer.className = 'folder-contents';
+            
+            // Find children
+            const children = fileSystem.filter(child => child.parentId === item.id);
+            children.sort((a, b) => {
+                if (a.type === b.type) return a.name.localeCompare(b.name);
+                return a.type === 'folder' ? -1 : 1;
+            });
+
+            if (children.length > 0) {
+                children.forEach(child => {
+                    childrenContainer.appendChild(createFileNode(child));
+                });
+            } else {
+                childrenContainer.innerHTML = '<div style="padding:5px 0 5px 24px; color:#ccc; font-size:0.8em;">Empty</div>';
+            }
+
+            container.appendChild(childrenContainer);
+
+            // Toggle Expand
+            row.onclick = () => {
+                const isExpanded = childrenContainer.classList.contains('expanded');
+                if (isExpanded) {
+                    childrenContainer.classList.remove('expanded');
+                    icon.textContent = '📁';
+                } else {
+                    childrenContainer.classList.add('expanded');
+                    icon.textContent = '📂';
+                }
+            };
+        } else {
+            // It's a file
+            row.onclick = () => {
+                // Load file
+                loadFile(item.id);
+                // Highlight active
+                document.querySelectorAll('.fs-item').forEach(el => el.classList.remove('active'));
+                row.classList.add('active');
+            };
+        }
+
+        return container;
+    }
+
+    function deleteItem(id) {
+        if(!confirm("Are you sure you want to delete this?")) return;
+        
+        // If folder, delete children recursively
+        const idsToDelete = [id];
+        const collectChildren = (parentId) => {
+            fileSystem.filter(i => i.parentId === parentId).forEach(child => {
+                idsToDelete.push(child.id);
+                if (child.type === 'folder') collectChildren(child.id);
+            });
+        };
+        collectChildren(id);
+
+        fileSystem = fileSystem.filter(item => !idsToDelete.includes(item.id));
+        saveFileSystem();
+    }
+
+    function loadFile(id) {
+        const file = fileSystem.find(i => i.id === id);
+        if (file) {
+            inputArea.value = file.content;
+            // Also update autosave when loading a file so it persists on refresh
+            localStorage.setItem(AUTOSAVE_KEY, file.content);
+            processJson(); // Auto format on load
+            document.getElementById('outputTitle').innerText = file.name;
+        }
+    }
+
+    // --- Modal Logic ---
+
+    function openSaveModal() {
+        document.getElementById('saveModal').style.display = 'flex';
+        const select = document.getElementById('saveFolderSelect');
+        select.innerHTML = '<option value="">(Root)</option>';
+        
+        // Populate folders
+        const folders = fileSystem.filter(i => i.type === 'folder');
+        folders.forEach(f => {
+            const opt = document.createElement('option');
+            opt.value = f.id;
+            opt.textContent = f.name;
+            select.appendChild(opt);
+        });
+        
+        document.getElementById('saveFileName').value = '';
+    }
+
+    function confirmSave() {
+        const name = document.getElementById('saveFileName').value.trim();
+        const folderId = document.getElementById('saveFolderSelect').value || null;
+        const content = inputArea.value;
+
+        if (!name) return alert("Please enter a file name");
+        
+        // Check duplicate name in same folder
+        const exists = fileSystem.some(i => i.parentId === folderId && i.name === name && i.type === 'file');
+        if (exists) {
+            if (!confirm("File with this name exists in this folder. Overwrite?")) return;
+            // Remove old
+            fileSystem = fileSystem.filter(i => !(i.parentId === folderId && i.name === name && i.type === 'file'));
+        }
+
+        fileSystem.push({
+            id: createId(),
+            name: name,
+            type: 'file',
+            parentId: folderId,
+            content: content,
+            date: new Date().toISOString()
+        });
+
+        saveFileSystem();
+        closeModal('saveModal');
+        showToast(`Saved "${name}"`);
+        
+        if(!sidebar.classList.contains('open')) toggleSidebar();
+    }
+
+    function openFolderModal() {
+        document.getElementById('folderModal').style.display = 'flex';
+        document.getElementById('newFolderName').value = '';
+    }
+
+    function confirmNewFolder() {
+        const name = document.getElementById('newFolderName').value.trim();
+        if (!name) return alert("Please enter a folder name");
+
+        fileSystem.push({
+            id: createId(),
+            name: name,
+            type: 'folder',
+            parentId: null, // Simple: only root folders for now
+            date: new Date().toISOString()
+        });
+
+        saveFileSystem();
+        closeModal('folderModal');
+        showToast("Folder created");
+    }
+
+    function closeModal(id) {
+        document.getElementById(id).style.display = 'none';
+    }
+    
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.innerText = msg;
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 3000);
+    }
+
+    // --- Existing Core Functions (Process, Render, etc) ---
+
+    function processJson() {
+        const rawInput = inputArea.value.trim();
+        treeContainer.innerHTML = '';
+        errorDisplay.style.display = 'none';
+        treeContainer.style.display = 'block';
+
+        if (!rawInput) return;
+
+        try {
+            const parsedObj = JSON.parse(rawInput);
+            currentJsonStr = JSON.stringify(parsedObj, null, 4);
+            const tree = renderJson(parsedObj);
+            treeContainer.appendChild(tree);
+        } catch (e) {
+            treeContainer.style.display = 'none';
+            errorDisplay.style.display = 'block';
+            errorDisplay.innerText = `Invalid JSON:\n${e.message}`;
+        }
+    }
+
+    function clearAll() {
+        if(confirm("Are you sure? This will clear the editor (saved files remain).")) {
+            inputArea.value = '';
+            treeContainer.innerHTML = '';
+            errorDisplay.style.display = 'none';
+            currentJsonStr = '';
+            document.getElementById('outputTitle').innerText = 'Formatted Output';
+            localStorage.removeItem(AUTOSAVE_KEY); // Clear auto-save
+        }
+    }
+
+    function copyOutput() {
+        if(currentJsonStr) {
+             const textarea = document.createElement('textarea');
+             textarea.value = currentJsonStr;
+             document.body.appendChild(textarea);
+             textarea.select();
+             document.execCommand('copy');
+             document.body.removeChild(textarea);
+             showToast("JSON copied to clipboard!");
+        }
+    }
+
+    function downloadOutput() {
+        if (!currentJsonStr) return showToast("No JSON to download");
+        
+        const blob = new Blob([currentJsonStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        
+        // Determine filename based on the title (if a file was loaded)
+        let title = document.getElementById('outputTitle').innerText;
+        if (title === 'Formatted Output' || !title) title = 'formatted_json';
+        
+        // Sanitize filename
+        title = title.replace(/[^a-z0-9_\-\.]/gi, '_');
+        if (!title.toLowerCase().endsWith('.json')) title += '.json';
+        
+        a.download = title;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    // --- JSON Tree Renderer (From previous version) ---
+    function renderJson(data) {
+        const container = document.createElement('div');
+        container.className = 'json-tree';
+        container.appendChild(createNode(undefined, data, true));
+        return container;
+    }
+
+    function createNode(key, value, isLast) {
+        const type = getType(value);
+        const node = document.createElement('div');
+        node.className = 'json-row';
+
+        let keyHtml = '';
+        if (key !== undefined) {
+            keyHtml = `<span class="key">"${key}"</span><span class="bracket">: </span>`;
+        }
+
+        if (type === 'object' || type === 'array') {
+            const isArray = type === 'array';
+            const openChar = isArray ? '[' : '{';
+            const closeChar = isArray ? ']' : '}';
+            const keys = Object.keys(value);
+            const isEmpty = keys.length === 0;
+
+            if (isEmpty) {
+                node.innerHTML = `${keyHtml}<span class="bracket">${openChar}${closeChar}</span>${isLast ? '' : '<span class="bracket">,</span>'}`;
+                return node;
+            }
+
+            const header = document.createElement('div');
+            header.className = 'collapsible-header';
+            header.innerHTML = `
+                <span class="toggle-icon">▼</span>
+                ${keyHtml}
+                <span class="bracket">${openChar}</span>
+                <span class="collapsed-preview"> ... ${closeChar}${isLast ? '' : ','}</span>
+            `;
+
+            const childrenDiv = document.createElement('div');
+            childrenDiv.className = 'children-container';
+
+            keys.forEach((k, index) => {
+                const childKey = isArray ? undefined : k;
+                const childValue = value[k];
+                const isLastChild = index === keys.length - 1;
+                childrenDiv.appendChild(createNode(childKey, childValue, isLastChild));
+            });
+
+            const footer = document.createElement('div');
+            footer.innerHTML = `<span class="bracket">${closeChar}</span>${isLast ? '' : '<span class="bracket">,</span>'}`;
+
+            node.appendChild(header);
+            node.appendChild(childrenDiv);
+            node.appendChild(footer);
+
+            header.onclick = function(e) {
+                e.stopPropagation();
+                node.classList.toggle('collapsed');
+                if (node.classList.contains('collapsed')) {
+                    childrenDiv.style.display = 'none';
+                    footer.style.display = 'none';
+                } else {
+                    childrenDiv.style.display = 'block';
+                    footer.style.display = 'block';
+                }
+            };
+            return node;
+        } else {
+            let valHtml = '';
+            if (type === 'string') {
+                const safeStr = String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                valHtml = `<span class="string">"${safeStr}"</span>`;
+            } else if (type === 'number') {
+                valHtml = `<span class="number">${value}</span>`;
+            } else if (type === 'boolean') {
+                valHtml = `<span class="boolean">${value}</span>`;
+            } else if (type === 'null') {
+                valHtml = `<span class="null">null</span>`;
+            }
+
+            node.innerHTML = `
+                <span style="display:inline-block; width:14px;"></span>
+                ${keyHtml}${valHtml}${isLast ? '' : '<span class="bracket">,</span>'}
+            `;
+            return node;
+        }
+    }
+
+    function getType(v) {
+        if (v === null) return 'null';
+        if (Array.isArray(v)) return 'array';
+        return typeof v;
+    }
+
+    // --- Resizer Logic ---
+    const resizer = document.getElementById('resizer');
+    const leftPanel = document.getElementById('leftPanel');
+    const mainContainer = document.querySelector('.main-container');
+
+    let dragStartX = 0; 
+    let initialLeftWidth = 0; 
+
+    const mouseDownHandler = function (e) {
+        dragStartX = e.clientX;
+        const leftStyle = window.getComputedStyle(leftPanel);
+        initialLeftWidth = parseInt(leftStyle.width, 10);
+        document.addEventListener('mousemove', mouseMoveHandler);
+        document.addEventListener('mouseup', mouseUpHandler);
+        resizer.classList.add('resizing');
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+    };
+
+    const mouseMoveHandler = function (e) {
+        const dx = e.clientX - dragStartX;
+        const newLeftWidth = initialLeftWidth + dx;
+        if (newLeftWidth > 200 && newLeftWidth < mainContainer.clientWidth - 200) {
+            leftPanel.style.flex = `0 0 ${newLeftWidth}px`;
+            leftPanel.style.width = `${newLeftWidth}px`;
+        }
+    };
+
+    const mouseUpHandler = function () {
+        document.removeEventListener('mousemove', mouseMoveHandler);
+        document.removeEventListener('mouseup', mouseUpHandler);
+        resizer.classList.remove('resizing');
+        document.body.style.removeProperty('cursor');
+        document.body.style.removeProperty('user-select');
+    };
+
+    resizer.addEventListener('mousedown', mouseDownHandler);
+
+</script>
+
+</body>
+</html>
